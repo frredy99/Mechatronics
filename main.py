@@ -4,9 +4,9 @@ from mediapipe.framework.formats import landmark_pb2
 import numpy as np
 import cv2
 import mediapipe as mp
-from Angle import CalculateAngle
+from Angle import Angle
 
-import RPi.GPIO as GPIO
+# import RPi.GPIO as GPIO
 import time
 
 # To better demonstrate the Pose Landmarker API, we have created a set of visualization tools
@@ -33,53 +33,87 @@ def draw_landmarks_on_image(rgb_image, detection_result):
     return annotated_image
 
 
+# returns x, y, z coordinates for nose, ears, and shoulders in dictionary
+# {'nose': [x, y, z], 'left ear': [x, y, z], ...}
+def get_coordinates(detection_result):
+    pose_landmarks_list = detection_result.pose_landmarks
+
+    # nose, left ear, right ear, left shoulder, right shoulder
+    idx_list = [0, 7, 8, 11, 12]
+    
+    for idx in range(len(pose_landmarks_list)):
+        pose_landmarks = pose_landmarks_list[idx]
+    
+    # get landmarks for nose, left ear, right ear, left shoulder, right shoulder
+    landmarks_key = ['nose', 'left ear', 'right ear', 'left shoulder', 'right shoulder']
+    landmarks_dic = {}
+    for idx in range(len(idx_list)):
+        try:
+            landmark = pose_landmarks[idx_list[idx]]
+        except:
+            return "out of camera frame"
+        landmarks_dic[landmarks_key[idx]] = np.array([landmark.x, 1 - landmark.y, -landmark.z])
+        
+    return landmarks_dic
+
+
 BaseOptions = mp.tasks.BaseOptions
 PoseLandmarker = mp.tasks.vision.PoseLandmarker
 PoseLandmarkerOptions = mp.tasks.vision.PoseLandmarkerOptions
 PoseLandmarkerResult = mp.tasks.vision.PoseLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
 
+# set global variable timestamp only when detected (need correction laters)
+timestamp_detected = 0
+
 # Create a pose landmarker instance with the live stream mode:
 def print_result(result: PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
+    global timestamp_detected
     try:
         annotated_image = draw_landmarks_on_image(output_image.numpy_view(), result)
         cv2.imshow('result', annotated_image)
-        cv2.waitKey(33)    
-        print(timestamp_ms, ":", CalculateAngle(result))
+        cv2.waitKey(33)
     except:
         print("failed to detect")
-    pass
+    try:
+        landmarks_dic = get_coordinates(detection_result=result)
+        angle = Angle(landmarks_dic)
+        shoulder_to_head = angle.CalculateShoulderToHeadAngle()
+        print(timestamp_detected, ":", shoulder_to_head)
+        timestamp_detected += 1
+    except:
+        print("failed to get angle")
 
-# Set up servo_pins
-servo_1 = int(10);
-servo_2 = int(11);
+# # Set up servo_pins
+# servo_1 = int(10);
+# servo_2 = int(11);
 
-# Set up GPIO
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(servo_1, GPIO.OUT)
+# # Set up GPIO
+# GPIO.setmode(GPIO.BCM)
+# GPIO.setup(servo_1, GPIO.OUT)
 
 
-# Create PWM instance
-pwm = GPIO.PWM(servo_1, 50)  # 50 Hz frequency
+# # Create PWM instance
+# pwm = GPIO.PWM(servo_1, 50)  # 50 Hz frequency
 
-# Start PWM
-pwm.start(0)
+# # Start PWM
+# pwm.start(0)
 
-# Function to set servo angle
-def set_angle(angle):
-    duty = angle / 18 + 2
-    GPIO.output(servo_1, True)
-    pwm.ChangeDutyCycle(duty)
-    time.sleep(1)
-    GPIO.output(servo_1, False)
-    pwm.ChangeDutyCycle(0)
+# # Function to set servo angle
+# def set_angle(angle):
+#     duty = angle / 18 + 2
+#     GPIO.output(servo_1, True)
+#     pwm.ChangeDutyCycle(duty)
+#     time.sleep(1)
+#     GPIO.output(servo_1, False)
+#     pwm.ChangeDutyCycle(0)
 
-# Move servo to specific angle
-set_angle(90)  # Move to 90 degrees
+# # Move servo to specific angle
+# set_angle(90)  # Move to 90 degrees
 
-# Clean up GPIO
-pwm.stop()
-GPIO.cleanup()
+# # Clean up GPIO
+# pwm.stop()
+# GPIO.cleanup()
 
 model_file = open('pose_landmarker_full.task', 'rb')
 model_data = model_file.read()
@@ -115,17 +149,15 @@ with PoseLandmarker.create_from_options(options) as landmarker:
             print(f"\nIgnoring empty camera frame\n")
             break
         
-        # Convert the frame received from OpenCV to a MediaPipe¡¯s Image object.
+        # Convert the frame received from OpenCV to a MediaPipe¢®?s Image object.
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image)
         
         # Send live image data to perform pose landmarking.
         # The results are accessible via the `result_callback` provided in
         # the `PoseLandmarkerOptions` object.
         # The pose landmarker must be created with the live stream mode.
-        try:
-            landmarker.detect_async(mp_image, timestamp)
-        except:
-            print('failed to detect')
+        
+        landmarker.detect_async(mp_image, timestamp)
         
         timestamp += 1
         
