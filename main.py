@@ -6,6 +6,9 @@ import cv2
 import mediapipe as mp
 from Angle import CalculateAngle
 
+import RPi.GPIO as GPIO
+import time
+
 # To better demonstrate the Pose Landmarker API, we have created a set of visualization tools
 # that will be used in this colab. These will draw the landmarks on a detect person, as well as
 # the expected connections between those markers.
@@ -38,11 +41,45 @@ VisionRunningMode = mp.tasks.vision.RunningMode
 
 # Create a pose landmarker instance with the live stream mode:
 def print_result(result: PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
-    annotated_image = draw_landmarks_on_image(output_image.numpy_view(), result)
-    cv2.imshow('result', annotated_image)
-    cv2.waitKey(33)
-    print(CalculateAngle(result))
+    try:
+        annotated_image = draw_landmarks_on_image(output_image.numpy_view(), result)
+        cv2.imshow('result', annotated_image)
+        cv2.waitKey(33)    
+        print(timestamp_ms, ":", CalculateAngle(result))
+    except:
+        print("failed to detect")
     pass
+
+# Set up servo_pins
+servo_1 = int(10);
+servo_2 = int(11);
+
+# Set up GPIO
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(servo_1, GPIO.OUT)
+
+
+# Create PWM instance
+pwm = GPIO.PWM(servo_1, 50)  # 50 Hz frequency
+
+# Start PWM
+pwm.start(0)
+
+# Function to set servo angle
+def set_angle(angle):
+    duty = angle / 18 + 2
+    GPIO.output(servo_1, True)
+    pwm.ChangeDutyCycle(duty)
+    time.sleep(1)
+    GPIO.output(servo_1, False)
+    pwm.ChangeDutyCycle(0)
+
+# Move servo to specific angle
+set_angle(90)  # Move to 90 degrees
+
+# Clean up GPIO
+pwm.stop()
+GPIO.cleanup()
 
 model_file = open('pose_landmarker_full.task', 'rb')
 model_data = model_file.read()

@@ -16,7 +16,10 @@ def CalculateAngle(detection_result):
     landmarks_key = ['nose', 'left ear', 'right ear', 'left shoulder', 'right shoulder']
     landmarks_dic = {}
     for idx in range(len(idx_list)):
-        landmark = pose_landmarks[idx_list[idx]]
+        try:
+            landmark = pose_landmarks[idx_list[idx]]
+        except:
+            return "out of camera frame"
         landmarks_dic[landmarks_key[idx]] = np.array([landmark.x, 1 - landmark.y, -landmark.z])
     
     center_shoulder = (landmarks_dic['left shoulder'] + landmarks_dic['right shoulder'])/2
