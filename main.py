@@ -5,9 +5,7 @@ import numpy as np
 import cv2
 import mediapipe as mp
 from Angle import Angle
-
-# import RPi.GPIO as GPIO
-import time
+from Detector import TurtleNeckDetector
 
 # To better demonstrate the Pose Landmarker API, we have created a set of visualization tools
 # that will be used in this colab. These will draw the landmarks on a detect person, as well as
@@ -66,20 +64,26 @@ VisionRunningMode = mp.tasks.vision.RunningMode
 # set global variable timestamp only when detected (need correction laters)
 timestamp_detected = 0
 
+# instantiate detector object
+detector = TurtleNeckDetector()
+
 # Create a pose landmarker instance with the live stream mode:
-def print_result(result: PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
+def callback(result: PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
     global timestamp_detected
     try:
         annotated_image = draw_landmarks_on_image(output_image.numpy_view(), result)
-        cv2.imshow('result', annotated_image)
-        cv2.waitKey(33)
+        # if timestamp_detected == 0:     # when first detected
+        #     detector.detected = True    # set detector flag true
+        # cv2.imshow('result', annotated_image)
+        # cv2.waitKey(33)
     except:
         print("failed to detect")
     try:
         landmarks_dic = get_coordinates(detection_result=result)
         angle = Angle(landmarks_dic)
         shoulder_to_head = angle.CalculateShoulderToHeadAngle()
-        print(timestamp_detected, ":", shoulder_to_head)
+        is_turtle_neck = detector.detect_turtle_neck(shoulder_to_head)
+        print(f"{timestamp_detected}: {shoulder_to_head}, {is_turtle_neck}")
         timestamp_detected += 1
     except:
         print("failed to get angle")
@@ -122,7 +126,7 @@ model_file.close()
 options = PoseLandmarkerOptions(
     base_options=BaseOptions(model_asset_buffer=model_data),
     running_mode=VisionRunningMode.LIVE_STREAM,
-    result_callback=print_result)
+    result_callback=callback)
 
 # For Video File input:
 path = 0 # Input video path here
