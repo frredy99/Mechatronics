@@ -82,7 +82,7 @@ if __name__ == "__main__":
         mapping = PostureMapping()
         # for i in np.arange(3, 12, 0.1):
         #     mapping.set_angle_2(i)
-        mapping.set_angle_2(5.0)
+        mapping.set_angle_2(7.0)
         print("set angle to 0")
         time.sleep(1.0)
         # mapping.set_angle_1(90)
