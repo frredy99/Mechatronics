@@ -28,6 +28,7 @@ class TurtleNeckDetector:
         if self.count >= self.count_threshold \
             and time.time() - self.start_time <= self.time_limit:
             # print("Turtle neck detected!")
+            self.is_running = True   # Notifying motor is running
             return True
         else:
             # print("Turtle neck not detected.")
