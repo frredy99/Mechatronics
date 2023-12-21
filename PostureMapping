@@ -15,12 +15,13 @@ class PostureMapping:
         # Mapping Customizing
         self.optimum_shoulder_to_head = 70   # Set optimum angle for the mapping         
         self.count = 0  # Count the number of mapping iteration
+        self.activated = False # Flag to indicate if PostureMapping is started
         self.count_threshold = 30 # Threshold for count
         self.classifier = 20  #(angle)                           
         self.large_mapping_rate = 0.5 # How much angle to change at once
         self.small_mapping_rate = 0.3 
 
-        self.is_running = False # Flag to check mapping
+
 
     def Iterator(self, shoulder_to_head):
         
@@ -46,11 +47,12 @@ class PostureMapping:
             self.angle2 -= del_angle1
             self.count += 1
             return self.angle1, self.angle2
-    
 
         else: 
             self.count = 0
-            print("Now in correct posture!")
+            print(f"Now in correct posture! The angle is {shoulder_to_head}.")
+            self.activated = False
+            return self.angle_1, self.angle_2
             
 
     

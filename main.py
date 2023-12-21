@@ -106,16 +106,13 @@ def callback(result: PoseLandmarkerResult, output_image: mp.Image, timestamp_ms:
         
         # Initiating posture mapping process
         if is_turtle_neck:
-            posturemapping.is_running = True
-    
-        angle_1, angle_2 = posturemapping.Iterator(shoulder_to_head)
-        # Send the execution to the pi board
-        serial(angle_1 ,angle_2) 
+            posturemapping.activated = True
+            is_turtle_neck = False
 
-        # else:
-        #     posturemapping.is_running == False:
-        #     is_turtle_neck = False 
-        #     detector.is_running = False
+        if posturemapping.activated:
+            angle_1, angle_2 = posturemapping.Iterator(shoulder_to_head)
+            # Send the execution to the pi board
+            serial(angle_1 ,angle_2) 
 
         timestamp_detected += 1
 
