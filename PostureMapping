@@ -1,4 +1,3 @@
-# For estimating the end of PostureMapping
 
 import numpy as np 
 
@@ -26,12 +25,13 @@ class PostureMapping:
     def Iterator(self, shoulder_to_head):
         
         # Compute loss
+        # Change the the loss function if needed: squared 
         loss = shoulder_to_head - self.optimum_shoulder_to_head
 
         # Classifying type of mapping(lage/small scale) by the shoulder_to_head angle 
         # Mapping in Large Scale
         if np.abs(loss) >= self.classifier \
-            and self.count >= self.count_threshold :
+            and self.count <= self.count_threshold :
             
             del_angle2 = - self.large_mapping_rate * np.sign(loss)
             self.angle2 += del_angle2
@@ -40,7 +40,7 @@ class PostureMapping:
         
         # Mapping in Small Scale
         elif self.classifier <= np.abs(loss) \
-            and self.count >= self.count_threshold: 
+            and self.count <= self.count_threshold: 
             
             del_angle1 = - self.small_mapping_rate * np.sign(loss)
             self.angle1 += del_angle1
