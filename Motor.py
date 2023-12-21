@@ -1,96 +1,87 @@
-import RPi.GPIO as GPIO
-import numpy as np
+import pigpio
 import time
+import numpy as np
+import bluetooth
+import struct
 
-class PostureMapping: 
-    def __init__(self) -> None:
-        GPIO.setwarnings(False)
-        
-        # Set up servo_pins
-        self.servo_1 = 10;
-        self.servo_2 = 11;
-        self.servo_3 = 12;
-        self.servo_4 = 13;
-        
-        # Set up GPIO
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(self.servo_1, GPIO.OUT)
-        GPIO.setup(self.servo_2, GPIO.OUT)
-        GPIO.setup(self.servo_3, GPIO.OUT)                           
-        GPIO.setup(self.servo_4, GPIO.OUT)
+def receive_data():
+    port = 1
 
-        # Create PWM instances as class attributes
-        self.pwm_1 = GPIO.PWM(self.servo_1, 50)  # 50 Hz frequency
-        self.pwm_2 = GPIO.PWM(self.servo_2, 50)
-        self.pwm_3 = GPIO.PWM(self.servo_3, 50)
-        self.pwm_4 = GPIO.PWM(self.servo_4, 50)
-        
-        # Set min/max duty cycle
-        self.SERVO_MAX_DUTY = 12
-        self.SERVO_MIN_DUTY = 3
+    try:
+        server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+        server_sock.bind(("", port))
+        server_sock.listen(1)
 
-        # Start PWM
-        self.pwm_1.start(0)
-        self.pwm_2.start(0)
-        self.pwm_3.start(0)
-        self.pwm_4.start(0)
-        
-    # Controlling two bottom servo at once 
-    def set_angle_1(self, duty1):
-        # for i in range(start_angle, desired_angle, time):
-        # duty1 = self.SERVO_MIN_DUTY+(desired_angle*(self.SERVO_MAX_DUTY-self.SERVO_MIN_DUTY)/270.0)
-        # duty2 = (self.SERVO_MAX_DUTY + self.SERVO_MIN_DUTY) - duty1
-        
-        print(duty1)
+        print("Waiting for connection...")
+        client_sock, client_info = server_sock.accept()
+        print(f"Accepted connection from {client_info}")
 
-        GPIO.output(self.servo_1, True)
-        GPIO.output(self.servo_2, True)
-        self.pwm_1.ChangeDutyCycle(duty1)
-        # self.pwm_2.ChangeDutyCycle(duty2)
-        time.sleep(0.3)                   # Change this delay as needed. 
-        GPIO.output(self.servo_1, False)
-        GPIO.output(self.servo_2, False)
-        self.pwm_1.ChangeDutyCycle(0)
-        self.pwm_2.ChangeDutyCycle(0)
+        data1 = client_sock.recv(4)
+        data2 = client_sock.recv(4)
         
-    def set_angle_2(self, duty1):
-        # for i in range(start_angle, desired_angle, time):
-        # duty1 = self.SERVO_MIN_DUTY+(desired_angle*(self.SERVO_MAX_DUTY-self.SERVO_MIN_DUTY)/270.0)
-        # duty2 = (self.SERVO_MAX_DUTY + self.SERVO_MIN_DUTY) - duty1
-        
-        print(duty1)
-        # duty2 = 15 - duty1
+        data1 = struct.unpack('f', data1)[0]
+        data2 = struct.unpack('f', data2)[0]
+        print(f"Received data: {data1}, {data2}")
 
-        GPIO.output(self.servo_3, True)
-        GPIO.output(self.servo_4, True)
-        self.pwm_3.ChangeDutyCycle(duty1)
-        # self.pwm_4.ChangeDutyCycle(duty2)
-        time.sleep(10.0)                   # Change this delay as needed. 
-        GPIO.output(self.servo_3, False)
-        GPIO.output(self.servo_4, False)
-        self.pwm_3.ChangeDutyCycle(0)
-        self.pwm_4.ChangeDutyCycle(0)
+        client_sock.close()
+        server_sock.close()
+        
+        return data1, data2
+    except Exception as e:
+        print(f"Error: {e}")
+
+class MotorControl:
+    def __init__(self, servo_pin):
+        self.servo_pin = servo_pin
+        self.pi = pigpio.pi()
+        self.current_angle = 0
+        self.timestamp = 0.1
+        self.vel = 30       # degree/sec
+        
+        # initializing
+        self.pi.set_servo_pulsewidth(self.servo_pin, 500)
+        time.sleep(1)
+        self.pi.set_servo_pulsewidth(self.servo_pin, 0)
+        
+    def set_angle(self, angle):
+        MAX_DUTY = 2500
+        MIN_DUTY = 500
+        
+        if angle > self.current_angle:
+            timestamp = self.timestamp
+        else:
+            timestamp = -self.timestamp
+        
+        for i in np.arange(self.current_angle, angle, timestamp):
+            duty_cycle = int((i / 180.0) * (MAX_DUTY-MIN_DUTY) + MIN_DUTY)
+            self.pi.set_servo_pulsewidth(self.servo_pin, duty_cycle)
+            time.sleep(self.timestamp/self.vel)
+            
+            
+        
+        self.pi.set_servo_pulsewidth(self.servo_pin, 0)
+        self.current_angle = angle
         
     def cleanup(self):
-        self.pwm.stop()
-        GPIO.cleanup()
-
-if __name__ == "__main__":
+        self.pi.stop()
     
-    try:
-        print("main is running")
-        mapping = PostureMapping()
-        # for i in np.arange(3, 12, 0.1):
-        #     mapping.set_angle_2(i)
-        mapping.set_angle_2(7.0)
-        print("set angle to 0")
-        time.sleep(1.0)
-        # mapping.set_angle_1(90)
-        # print("set angle to 90")
-        # time.sleep(1.0)
-        # mapping.set_angle_1(180)
-        # print("set angle to 180")
-        # time.sleep(1.0)
+    
+if __name__ == "__main__":
+    print("main is running")
+    
+    servo1 = MotorControl(18)
+    servo2 = MotorControl(17)
+    
+    while True:
+        angle1, angle2 = receive_data()
+        try:
+            print("setting angle...")
+            servo1.set_angle(angle1)
+            servo2.set_angle(angle2)
+            print("Done: ", servo1.current_angle, servo2.current_angle)
         
-    except KeyboardInterrupt:
-        mapping.cleanup()
+        except KeyboardInterrupt:
+            servo1.cleanup()
+            servo2.cleanup()
+            print("servo cleaned up")
+

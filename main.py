@@ -6,6 +6,7 @@ import cv2
 import mediapipe as mp
 from Angle import Angle
 from Detector import TurtleNeckDetector
+from PostureMapping import PostureMapping as pm
 
 # To better demonstrate the Pose Landmarker API, we have created a set of visualization tools
 # that will be used in this colab. These will draw the landmarks on a detect person, as well as
@@ -66,6 +67,7 @@ timestamp_detected = 0
 
 # instantiate detector object
 detector = TurtleNeckDetector()
+posturemapping = pm()
 
 # Create a pose landmarker instance with the live stream mode:
 def callback(result: PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
@@ -84,6 +86,19 @@ def callback(result: PoseLandmarkerResult, output_image: mp.Image, timestamp_ms:
         shoulder_to_head = angle.CalculateShoulderToHeadAngle()
         is_turtle_neck = detector.detect_turtle_neck(shoulder_to_head)
         print(f"{timestamp_detected}: {shoulder_to_head}, {is_turtle_neck}")
+        
+        # Initiating posture mapping process
+        if is_turtle_neck:
+            posturemapping.activated = True
+            is_turtle_neck = False
+
+        if posturemapping.activated:
+            angle_1, angle_2, is_mapping_on = posturemapping.Iterator(shoulder_to_head)
+            if not is_mapping_on:
+                detector.is_running = False
+            print(angle_1, angle_2)
+            # Send the execution to the pi board
+        
         timestamp_detected += 1
     except:
         print("failed to get angle")
