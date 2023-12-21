@@ -24,7 +24,10 @@ def send_data(data1, data2, target_address):
 if __name__ == "__main__":
     target_address = "D8:3A:DD:29:9A:A8"
     
-    while True:
-        angle1 = float(input("input angle1: "))
-        angle2 = float(input("input angle2: "))
-        send_data(angle1, angle2, target_address)
+    try:
+        while True:
+            angle1 = float(input("input angle1: "))
+            angle2 = float(input("input angle2: "))
+            send_data(angle1, angle2, target_address)
+    except KeyboardInterrupt:
+        print("break")
