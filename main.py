@@ -7,19 +7,21 @@ import mediapipe as mp
 from Angle import Angle
 from Detector import TurtleNeckDetector
 from PostureMapping import PostureMapping as pm
-import bluetooth
+# import bluetooth
 
 # For raspberrypi serial:
 server_mac_address = '50:C2:E8:1B:18:BE'  # 라즈베리 파이 블루투스 MAC 주소 입력
 port = 1    # 포트는 임의로 작성하기
-sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-sock.connect((server_mac_address, port))
+
+# sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+# sock.connect((server_mac_address, port))
 
 # Encoding Function to send angles to the pi board
+"""
 def serial(angle_1, angle_2):
     data_to_send = f"{angle_1}, {angle_2}"
     sock.send(data_to_send.encode())
-
+"""
 
 # To better demonstrate the Pose Landmarker API, we have created a set of visualization tools
 # that will be used in this colab. These will draw the landmarks on a detect person, as well as
@@ -82,7 +84,7 @@ timestamp_detected = 0
 detector = TurtleNeckDetector()
 
 # instantiate posturemapping object
-posturemapping = PostureMapping()
+posturemapping = pm()
 
 
 # Create a pose landmarker instance with the live stream mode:
@@ -161,6 +163,8 @@ with PoseLandmarker.create_from_options(options) as landmarker:
         # Convert the frame received from OpenCV to a MediaPipe¢®?s Image object.
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image)
         
+        
+        cv2.imshow('Camera Feed', image)
         # Send live image data to perform pose landmarking.
         # The results are accessible via the `result_callback` provided in
         # the `PoseLandmarkerOptions` object.
