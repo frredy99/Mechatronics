@@ -5,7 +5,7 @@ class PostureMapping:
     def __init__(self) -> None:
         # For saving Current Angle
         # and initiating angle positions
-        angle_1 = 0
+        angle_1 = 40
         angle_2 = 0
         self.angle_1 = angle_1
         self.angle_2 = angle_2
@@ -44,7 +44,7 @@ class PostureMapping:
             self.angle_2 += del_angle_2
             
             print("Mapping in large scale:")
-            return self.angle_1, self.angle_2
+            return self.angle_1, self.angle_1 + self.angle_2
             
         # Detecting the correct posture in Large Scale
         if np.abs(loss) <= self.classifier1 :
@@ -59,7 +59,7 @@ class PostureMapping:
             self.angle_2 -= del_angle_1
             
             print("Mapping in small scale:")
-            return self.angle_1, self.angle_2
+            return self.angle_1, self.angle_1 + self.angle_2
             
         # Detecting the correct posture in Small Scale
         if np.abs(loss) <= self.classifier2 :
@@ -70,7 +70,7 @@ class PostureMapping:
             self.count2 = 0
             print(f"Now in correct posture! The angle is {shoulder_to_head}.")
             self.activated = False
-            return self.angle_1, self.angle_2
+            return self.angle_1, self.angle_1 + self.angle_2
             
 
     
