@@ -1,13 +1,31 @@
 import time
+import cv2
+import mediapipe as mp
 
 
 def get_distance(rgb_image, detection_result):
+    image = cv2.cvtColor(detection_result, cv2.COLOR_BGR2RGB)
+    results = pose.process(image)
+
+    if results.pose_landmarks:
+        # 어깨 관절 좌표 가져오기
+        left_shoulder = results.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_SHOULDER]
+        right_shoulder = results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_SHOULDER]
+
+        # 좌표가 있는 경우에만 거리 계산
+        if left_shoulder and right_shoulder:
+            # 픽셀 좌표를 실제 거리로 변환
+            width_pixels = abs(
+                right_shoulder.x * image.shape[1] - left_shoulder.x * image.shape[1])
+            distance = width_pixels
+
+    """
     focal_length = 800  # 초점 거리
     known_width = 14.0  # 실제 사물의 가로 너비 (예: 센티미터 단위)
     perceived_width = 300  # 이미지상 사물의 가로 픽셀 너비
 
     distance = (known_width * focal_length) / perceived_width
-
+    """
     return distance
 
 
