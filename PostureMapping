@@ -1,4 +1,3 @@
-
 import numpy as np 
 
 
@@ -13,12 +12,20 @@ class PostureMapping:
 
         # Mapping Customizing
         self.optimum_shoulder_to_head = 70   # Set optimum angle for the mapping         
-        self.count = 0  # Count the number of mapping iteration
         self.activated = False # Flag to indicate if PostureMapping is started
-        self.count_threshold = 30 # Threshold for count
-        self.classifier = 20  #(angle)                           
-        self.large_mapping_rate = 0.5 # How much angle to change at once
+        
+        
+        # Large mapping
+        self.count1 = 0  # Count the number of stable position 
+        self.classifier1 = 30  #(angle)
+        self.large_mapping_rate = 0.5 # How much angle to change at once. 0.5 = 50% change
+        
+        # Small mapping
+        self.count2 = 0  # Count the number of stable position 
+        self.classifier2 = 10  #(angle) 
         self.small_mapping_rate = 0.3 
+    
+        self.count_threshold = 30 # Threshold for count
 
 
 
@@ -30,26 +37,37 @@ class PostureMapping:
 
         # Classifying type of mapping(lage/small scale) by the shoulder_to_head angle 
         # Mapping in Large Scale
-        if np.abs(loss) >= self.classifier \
-            and self.count <= self.count_threshold :
+        if np.abs(loss) >= self.classifier1 \
+            and self.count1 <= self.count_threshold:
             
-            del_angle2 = - self.large_mapping_rate * np.sign(loss)
-            self.angle2 += del_angle2
-            self.count += 1
-            return self.angle1, self.angle2
+            del_angle_2 = - self.large_mapping_rate * np.sign(loss)
+            self.angle_2 += del_angle_2
+            
+            print("Mapping in large scale:")
+            return self.angle_1, self.angle_2
+            
+        # Detecting the correct posture in Large Scale
+        if np.abs(loss) <= self.classifier1 :
+            self.count1 += 1
         
         # Mapping in Small Scale
-        elif self.classifier <= np.abs(loss) \
-            and self.count <= self.count_threshold: 
+        elif self.count1 >= self.count_threshold \
+            and self.count2 <= self.count_threshold:
+                
+            del_angle_1 = - self.small_mapping_rate * np.sign(loss)
+            self.angle_1 += del_angle_1
+            self.angle_2 -= del_angle_1
             
-            del_angle1 = - self.small_mapping_rate * np.sign(loss)
-            self.angle1 += del_angle1
-            self.angle2 -= del_angle1
-            self.count += 1
-            return self.angle1, self.angle2
+            print("Mapping in small scale:")
+            return self.angle_1, self.angle_2
+            
+        # Detecting the correct posture in Small Scale
+        if np.abs(loss) <= self.classifier2 :
+            self.count2 += 1
 
         else: 
-            self.count = 0
+            self.count1 = 0
+            self.count2 = 0
             print(f"Now in correct posture! The angle is {shoulder_to_head}.")
             self.activated = False
             return self.angle_1, self.angle_2
