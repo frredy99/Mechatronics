@@ -1,4 +1,5 @@
 import bluetooth
+import struct
 
 def receive_data():
     port = 1
@@ -11,9 +12,18 @@ def receive_data():
         print("Waiting for connection...")
         client_sock, client_info = server_sock.accept()
         print(f"Accepted connection from {client_info}")
+        
+        while True:
 
-        data = client_sock.recv(1024)
-        print(f"Received data: {data.decode()}")
+            data1 = client_sock.recv(4)
+            data2 = client_sock.recv(4)
+            
+            if not data1 or not data2:
+                break
+            
+            data1 = struct.unpack('f', data1)[0]
+            data2 = struct.unpack('f', data2)[0]
+            print(f"Received data: {data1}, {data2}")
 
         client_sock.close()
         server_sock.close()

@@ -23,6 +23,7 @@ class MotorControl:
             timestamp = self.timestamp
         else:
             timestamp = -self.timestamp
+        
         for i in np.arange(self.current_angle, angle, timestamp):
             duty_cycle = int((i / 180.0) * (MAX_DUTY-MIN_DUTY) + MIN_DUTY)
             self.pi.set_servo_pulsewidth(self.servo_pin, duty_cycle)
