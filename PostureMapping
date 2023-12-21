@@ -1,0 +1,59 @@
+# For estimating the end of PostureMapping
+
+import numpy as np 
+
+
+class PostureMapping: 
+    def __init__(self) -> None:
+        # For saving Current Angle
+        # and initiating angle positions
+        angle_1 = 0
+        angle_2 = 0
+        self.angle_1 = angle_1
+        self.angle_2 = angle_2
+
+        # Mapping Customizing
+        self.optimum_shoulder_to_head = 70   # Set optimum angle for the mapping         
+        self.count = 0  # Count the number of mapping iteration
+        self.count_threshold = 30 # Threshold for count
+        self.classifier = 20  #(angle)                           
+        self.large_mapping_rate = 0.5 # How much angle to change at once
+        self.small_mapping_rate = 0.3 
+
+        self.is_running = False # Flag to check mapping
+
+    def Iterator(self, shoulder_to_head):
+        
+        # Compute loss
+        loss = shoulder_to_head - self.optimum_shoulder_to_head
+
+        # Classifying type of mapping(lage/small scale) by the shoulder_to_head angle 
+        # Mapping in Large Scale
+        if np.abs(loss) >= self.classifier \
+            and self.count >= self.count_threshold :
+            
+            del_angle2 = - self.large_mapping_rate * np.sign(loss)
+            self.angle2 += del_angle2
+            self.count += 1
+            return self.angle1, self.angle2
+        
+        # Mapping in Small Scale
+        elif self.classifier <= np.abs(loss) \
+            and self.count >= self.count_threshold: 
+            
+            del_angle1 = - self.small_mapping_rate * np.sign(loss)
+            self.angle1 += del_angle1
+            self.angle2 -= del_angle1
+            self.count += 1
+            return self.angle1, self.angle2
+    
+
+        else: 
+            self.count = 0
+            print("Now in correct posture!")
+            
+
+    
+
+
+
