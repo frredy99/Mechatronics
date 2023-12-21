@@ -1,6 +1,34 @@
 import pigpio
 import time
 import numpy as np
+import bluetooth
+import struct
+
+def receive_data():
+    port = 1
+
+    try:
+        server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+        server_sock.bind(("", port))
+        server_sock.listen(1)
+
+        print("Waiting for connection...")
+        client_sock, client_info = server_sock.accept()
+        print(f"Accepted connection from {client_info}")
+
+        data1 = client_sock.recv(4)
+        data2 = client_sock.recv(4)
+        
+        data1 = struct.unpack('f', data1)[0]
+        data2 = struct.unpack('f', data2)[0]
+        print(f"Received data: {data1}, {data2}")
+
+        client_sock.close()
+        server_sock.close()
+        
+        return data1, data2
+    except Exception as e:
+        print(f"Error: {e}")
 
 class MotorControl:
     def __init__(self, servo_pin):
@@ -42,15 +70,18 @@ if __name__ == "__main__":
     print("main is running")
     
     servo1 = MotorControl(18)
+    servo2 = MotorControl(17)
     
     while True:
-        angle = float(input("input angle: "))
+        angle1, angle2 = receive_data()
         try:
             print("setting angle...")
-            servo1.set_angle(angle)
-            print("Done: ", servo1.current_angle)
+            servo1.set_angle(angle1)
+            servo2.set_angle(angle2)
+            print("Done: ", servo1.current_angle, servo2.current_angle)
         
         except KeyboardInterrupt:
             servo1.cleanup()
+            servo2.cleanup()
             print("servo cleaned up")
 
